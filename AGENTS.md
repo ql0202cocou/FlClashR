@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-FlClashR 跟随 FlClash 上游，仅分发 macOS 客户端。下游改动仅限 Xray 兼容所需的适配，以及分发身份所需的修改（Bundle ID、应用名、URL scheme 和更新源）。维护内核补丁时，以目标 FlClash 版本在 `core/Clash.Meta` 锁定的 mihomo 提交为基线。
+FlClashR 跟随 FlClash 上游，分发 macOS 和 Android 客户端，且只通过总仓的 GitHub Releases 分发。下游改动仅限 Xray 兼容所需的适配，以及分发身份所需的修改（Bundle ID、Android 包名、应用名、URL scheme 和更新源）。维护内核补丁时，以目标 FlClash 版本在 `core/Clash.Meta` 锁定的 mihomo 提交为基线。
 
 ## Project Structure
 
@@ -30,12 +30,13 @@ FlClashR 跟随 FlClash 上游，仅分发 macOS 客户端。下游改动仅限 
 - `make run DEVICE=macos` 以安全模式启动调试版客户端。
 - `make test TEST=test/core/` 运行核心模块的 Flutter 测试。`make coverage` 运行完整测试套件，并检查覆盖率是否达到上游要求的 75%。
 - `make package-macos` 构建 DMG 安装包。
+- `make package-android ARCH=arm64` 构建单一架构的 APK，省略 `ARCH` 则构建全部架构。
 
 ## Coding Style and Tests
 
 Dart 使用两个空格缩进，字符串使用单引号。用 `dart format` 格式化，并在客户端目录运行 `make analyze`。Flutter 测试文件按 `*_test.dart` 命名。Go 使用制表符缩进，用 `gofmt` 格式化，测试文件 `*_test.go` 与被测代码放在同一目录。修改订阅转换逻辑后，在 mihomo 仓库根目录运行 `go test ./common/convert`。
 
-验证分享链接时，导入节点、导出链接，再重新导入并核对字段值。修改握手逻辑时，用固定版本的官方 Xray 服务端测试验证参数正确、错误和省略三种情况，核对实际流量能否按预期通过。记录结果时区分源码核对、转换测试和实际互通。发布前，分别在 macOS 系统代理和 TUN 模式下验收安装包。
+验证分享链接时，导入节点、导出链接，再重新导入并核对字段值。修改握手逻辑时，用固定版本的官方 Xray 服务端测试验证参数正确、错误和省略三种情况，核对实际流量能否按预期通过。记录结果时区分源码核对、转换测试和实际互通。发布前，分别在 macOS 系统代理和 TUN 模式下、Android VPN 模式下验收安装包。
 
 验收记录包含 FlClash 基线、内核提交和 Xray 版本，以及内核锁定的 `metacubex/utls`、`tls`、`http`、`quic-go`、`mlkem`、`blake3`，和 Xray-core 锁定的 `refraction-networking/utls`、`xtls/reality`。任一依赖版本变化时，即使内核补丁未变，也重跑受影响的互通用例。
 

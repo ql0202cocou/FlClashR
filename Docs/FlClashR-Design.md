@@ -2,13 +2,13 @@
 
 设计草案 · 2026-11-24
 
-FlClashR 跟随 FlClash 上游，仅维护让 FlClash 节点与 Xray 互通所必需的差异和独立的分发身份，产品只在 macOS 分发。客户端使用一个 mihomo 内核。Xray-core 提供协议行为参照，并在互通测试中充当服务端。文中的仓库名、目录和同步流程是拟议设计。
+FlClashR 跟随 FlClash 上游，仅维护让 FlClash 节点与 Xray 互通所必需的差异和独立的分发身份，产品在 macOS 和 Android 分发。客户端使用一个 mihomo 内核。Xray-core 提供协议行为参照，并在互通测试中充当服务端。文中的仓库名、目录和同步流程是拟议设计。
 
 ## 仓库结构
 
 | 自有仓库 | 上游基线 | 维护内容 |
 | --- | --- | --- |
-| `FlClashR` | 当前总仓 | 收纳上游源码，锁定可复现的版本组合，存放设计文档和跨仓互通测试，发布 macOS 安装包。 |
+| `FlClashR` | 当前总仓 | 收纳上游源码，锁定可复现的版本组合，存放设计文档和跨仓互通测试，发布 macOS 和 Android 安装包。 |
 | `FlClashR-app` | `chen08209/FlClash` 的 `main` 和正式版标签 | 指向自有内核仓库。仅在客户端会丢失、误读或错误导出 Xray 参数时，修改相应的配置处理代码。另维护分发身份。 |
 | `FlClashR-core` | FlClash 锁定的 `chen08209/Clash.Meta` 提交，来自其 `FlClash` 分支 | 主要开发仓。维护出站协议、传输、握手验证及内核侧的分享链接转换。每项兼容补丁对应一个可复现的差异。 |
 
@@ -27,7 +27,7 @@ FlClashR/
     └── interop/                  # FlClashR 与官方 Xray 的互通用例
 ```
 
-总仓用 Git 子模块锁定 App 和 Xray-core 的提交，App 再锁定实际编译的内核和 UI。开发内核时直接使用 `app/FlClash/core/Clash.Meta/`。FlClash 的 Go 模块通过 `replace` 在此路径加载 mihomo。日常构建只需检出 App 及其子模块，互通测试再检出 Xray-core。查找上游协议修复时，在内核检出中与 MetaCubeX/mihomo 远端对比。其余上游资料不作为子模块收纳，需要时直接查阅 [meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat)、[metacubexd](https://github.com/MetaCubeX/metacubexd)、[homebrew-tap](https://github.com/chen08209/homebrew-tap) 和 [FlClash-fdroid-repo](https://github.com/chen08209/FlClash-fdroid-repo)。[FlClash 子模块声明](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/.gitmodules) · [内核构建路径](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/core/go.mod#L5)
+总仓用 Git 子模块锁定 App 和 Xray-core 的提交，App 再锁定实际编译的内核和 UI。开发内核时直接使用 `app/FlClash/core/Clash.Meta/`。FlClash 的 Go 模块通过 `replace` 在此路径加载 mihomo。日常构建只需检出 App 及其子模块，互通测试再检出 Xray-core。查找上游协议修复时，在内核检出中与 MetaCubeX/mihomo 远端对比。其余上游资料不作为子模块收纳，需要时直接查阅 [meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat) 和 [metacubexd](https://github.com/MetaCubeX/metacubexd)。[FlClash 子模块声明](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/.gitmodules) · [内核构建路径](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/core/go.mod#L5)
 
 ## 跟进 FlClash 上游
 
@@ -35,7 +35,7 @@ FlClashR/
 
 | 上游事件 | 处理方式 |
 | --- | --- |
-| FlClash 主线更新，内核指针相同 | 同步 App 提交及其锁定的 UI 版本，沿用已验证的自有内核。检查 macOS 构建和受影响的节点导入、导出用例。 |
+| FlClash 主线更新，内核指针相同 | 同步 App 提交及其锁定的 UI 版本，沿用已验证的自有内核。检查 macOS 和 Android 构建，以及受影响的节点导入、导出用例。 |
 | FlClash 改变 `core/Clash.Meta` 指针 | 在自有内核仓库中以新指针为基线逐项核对自有补丁。上游已实现同一行为且通过原用例时移除对应补丁。让候选 App 指向移植后的内核提交，用这一组合构建并验证。 |
 | FlClash 发布正式版 | 单独读取该标签及其子模块指针，用该组合做发布验收。总仓标签锁定通过验收的 App 和 Xray 对端，发布说明标明对应的 FlClash 版本。 |
 | MetaCubeX/mihomo 或 Xray-core 出现相关更新 | 从 mihomo 查找可同步的修复，用指定版本的官方 Xray 复测已有用例。记录新增差异，依据 FlClash 的基线决定需要移植的改动。 |
@@ -61,8 +61,8 @@ FlClashR/
 - **XHTTP 分享链接往返。** 在 FlClash `afe71360`、内核 `5b453f80` 上，虚构 VLESS 节点首次导入时保留了自定义请求头和 `reuse-settings.max-concurrency`，导出再导入后两项均丢失。该例应修 App 的链接导出，并加入往返测试。[内核导入](https://github.com/chen08209/Clash.Meta/blob/5b453f80dbcee6b3ecfb0415bcace24a48c88707/common/convert/v.go#L146) · [App 导出](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/core/share_link.go#L340)
 - **REALITY 的 `mldsa65Verify`。** 官方 Xray 有额外的证书签名验证逻辑，上述内核基线的 `RealityOptions` 缺少对应字段。当前结论来自源码核对。候选用例应验证正确公钥可代理流量、错误公钥无法建立可用的代理连接，以及省略该字段的已有节点仍能连接。[mihomo REALITY 参数](https://github.com/chen08209/Clash.Meta/blob/5b453f80dbcee6b3ecfb0415bcace24a48c88707/adapter/outbound/reality.go#L13) · [Xray 证书验证](https://github.com/XTLS/Xray-core/blob/4dac7685677e6ed9dfb651c1af262b8f450bebd2/transport/internet/reality/reality.go#L101)
 
-## macOS 发布验收
+## 发布验收
 
-内核和 App 各自维护其字段解析、握手和链接往返测试。总仓用 `tests/interop/` 验证锁定版本的组合，再从实际 macOS 安装包启动应用，导入测试节点，分别在系统代理和 TUN 模式下通过该节点收发流量。
+内核和 App 各自维护其字段解析、握手和链接往返测试。总仓用 `tests/interop/` 验证锁定版本的组合，再从实际安装包启动应用并导入测试节点。macOS 分别在系统代理和 TUN 模式下、Android 在 VPN 模式下通过该节点收发流量。
 
-首期分发方案建议由总仓 GitHub Releases 提供 DMG。首发支持的 CPU 架构和自有 Homebrew tap 待定。
+安装包只通过总仓的 GitHub Releases 提供，macOS 使用 DMG，Android 使用 APK。Android 的签名密钥由维护者保管且长期不变，以保证用户能覆盖升级。首发支持的 CPU 架构待定。

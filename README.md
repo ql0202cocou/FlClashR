@@ -1,6 +1,6 @@
 # FlClashR
 
-FlClashR 是 [FlClash](https://github.com/chen08209/FlClash) 的下游项目，仅分发 macOS 客户端。下游改动限于 Xray 兼容所需的适配，以及独立的分发身份。项目处于早期阶段，尚未发布安装包。
+FlClashR 是 [FlClash](https://github.com/chen08209/FlClash) 的下游项目，分发 macOS 和 Android 客户端，且只通过 GitHub Releases 分发。下游改动限于 Xray 兼容所需的适配，以及独立的分发身份。项目处于早期阶段，尚未发布安装包。
 
 ## 上游关系
 
