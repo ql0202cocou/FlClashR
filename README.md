@@ -13,3 +13,7 @@ FlClashR 由个人独立维护，与下列上游项目没有隶属关系。各�
 | 协议参照 | [XTLS/Xray-core](https://github.com/XTLS/Xray-core) | 仅用于对照和互通测试，不编译进客户端 | MPL-2.0 |
 
 锁定的提交见 `.gitmodules` 和各子模块指针。仓库分工见[仓库与维护设计](Docs/FlClashR-Design.md)。
+
+## 许可证
+
+总仓采用 [GPL-3.0](LICENSE)，各子模块遵循自身的许可证。
