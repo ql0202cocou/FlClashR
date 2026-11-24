@@ -9,28 +9,25 @@ FlClashR 跟随 FlClash 上游，仅维护让 FlClash 节点与 Xray 互通所�
 | 自有仓库 | 上游基线 | 维护内容 |
 | --- | --- | --- |
 | `FlClashR` | 当前总仓 | 收纳上游源码，锁定可复现的版本组合，存放设计文档和跨仓互通测试，发布 macOS 安装包。 |
-| `FlClashR-app` | `chen08209/FlClash` 的 `main` 和正式版标签 | 指向自有内核仓库。仅在客户端会丢失、误读或错误导出 Xray 参数时，修改相应的配置处理代码。另维护分发身份所需的 Bundle ID、应用名、URL scheme 和更新源。 |
+| `FlClashR-app` | `chen08209/FlClash` 的 `main` 和正式版标签 | 指向自有内核仓库。仅在客户端会丢失、误读或错误导出 Xray 参数时，修改相应的配置处理代码。另维护分发身份。 |
 | `FlClashR-core` | FlClash 锁定的 `chen08209/Clash.Meta` 提交，来自其 `FlClash` 分支 | 主要开发仓。维护出站协议、传输、握手验证及内核侧的分享链接转换。每项兼容补丁对应一个可复现的差异。 |
 
-自有仓库独立建立，不使用 GitHub 的 fork 功能，推送时保留上游提交历史。与上游的关系只在[项目说明](../README.md)中说明。
-
-补丁归属分客户端、内核、内核依赖三层。内核依赖指 `go.mod` 锁定的 Go 模块，其中 `github.com/metacubex/*` 由 MetaCubeX 独立维护，默认跟随上游，没有对应的自有仓库。自行维护的条件和 `replace` 约定见[技术契约](Agent/agents-trimmed.md)。
+补丁归属分客户端、内核、内核依赖三层。内核依赖指 `go.mod` 锁定的 Go 模块，其中 `github.com/metacubex/*` 由 MetaCubeX 独立维护，默认跟随上游，没有对应的自有仓库。自行维护的条件和 `replace` 约定见[仓库规则](../AGENTS.md)。
 
 ```text
 FlClashR/
-├── Docs/                         # 入库的设计和技术契约，以及本地的待办和遗留问题
+├── Docs/                         # 入库的设计，以及本地的待办和遗留问题
 ├── app/
 │   └── FlClash/                  # FlClashR-app 子模块
 │       ├── core/Clash.Meta/      # App 锁定的 FlClashR-core 子模块
 │       └── plugins/prism_ui/     # App 锁定的官方 UI 子模块
 ├── upstreams/
-│   ├── mihomo/                   # MetaCubeX/mihomo，查找上游协议修复
 │   └── Xray-core/                # XTLS/Xray-core，互通测试对端
 └── tests/
     └── interop/                  # FlClashR 与官方 Xray 的互通用例
 ```
 
-总仓用 Git 子模块锁定 App 和各参照仓库的提交，App 再锁定实际编译的内核和 UI。开发内核时直接使用 `app/FlClash/core/Clash.Meta/`。FlClash 的 Go 模块通过 `replace` 在此路径加载 mihomo。日常构建只需检出 App 及其子模块，互通测试再检出 Xray-core，查找上游协议修复时检出 mihomo。其余上游资料不作为子模块收纳，需要时直接查阅 [meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat)、[metacubexd](https://github.com/MetaCubeX/metacubexd)、[homebrew-tap](https://github.com/chen08209/homebrew-tap) 和 [FlClash-fdroid-repo](https://github.com/chen08209/FlClash-fdroid-repo)。[FlClash 子模块声明](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/.gitmodules) · [内核构建路径](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/core/go.mod#L5)
+总仓用 Git 子模块锁定 App 和 Xray-core 的提交，App 再锁定实际编译的内核和 UI。开发内核时直接使用 `app/FlClash/core/Clash.Meta/`。FlClash 的 Go 模块通过 `replace` 在此路径加载 mihomo。日常构建只需检出 App 及其子模块，互通测试再检出 Xray-core。查找上游协议修复时，在内核检出中与 MetaCubeX/mihomo 远端对比。其余上游资料不作为子模块收纳，需要时直接查阅 [meta-rules-dat](https://github.com/MetaCubeX/meta-rules-dat)、[metacubexd](https://github.com/MetaCubeX/metacubexd)、[homebrew-tap](https://github.com/chen08209/homebrew-tap) 和 [FlClash-fdroid-repo](https://github.com/chen08209/FlClash-fdroid-repo)。[FlClash 子模块声明](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/.gitmodules) · [内核构建路径](https://github.com/chen08209/FlClash/blob/afe7136002271fd64f098b154e7fff40be721eb8/core/go.mod#L5)
 
 ## 跟进 FlClash 上游
 
@@ -54,7 +51,7 @@ FlClashR/
 | --- | --- | --- |
 | 分享链接或订阅读入后，节点缺少字段 | 内核的 `common/convert/` 负责转换。App 的 `core/share_link.go` 负责分享链接导出。 | 从适用的分享链接、内联节点和 provider 入口读取，同一节点的有效参数一致。导出后重新导入，应保留原有传输与验证要求。 |
 | 节点字段齐全，与官方 Xray 的握手或传输仍不一致 | 内核的 `adapter/outbound/` 及对应的 `component/tls/`、`transport/` | 用固定版本的官方 Xray 建立连接并收发流量。涉及身份验证时，同时覆盖正确凭据、错误凭据和原有节点配置。 |
-| 差异的根因在内核依赖内 | 优先在内核适配。内核无法适配时才自行维护该依赖，并按技术契约添加 `replace`。 | 客户端构建和内核单独测试都使用自行维护的依赖，并通过原差异对应的互通用例。 |
+| 差异的根因在内核依赖内 | 优先在内核适配。内核无法适配时才自行维护该依赖，并按[仓库规则](../AGENTS.md)添加 `replace`。 | 客户端构建和内核单独测试都使用自行维护的依赖，并通过原差异对应的互通用例。 |
 | 节点指定了当前内核无法执行的验证要求 | 在最早能识别该要求的解析或校验层报告具体参数 | 用户能看到原因，携带该要求的节点无法在丢失校验的情况下被当作可用节点。 |
 
 ### 两个已核对的例子

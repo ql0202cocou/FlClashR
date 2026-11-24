@@ -2,6 +2,3 @@
 
 Docs/*
 !Docs/FlClashR-Design.md
-!Docs/Agent/
-Docs/Agent/*
-!Docs/Agent/agents-trimmed.md
