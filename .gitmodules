@@ -1,8 +1,0 @@
-[submodule "app/FlClash"]
-	path = app/FlClash
-	url = https://github.com/chen08209/FlClash.git
-	branch = main
-[submodule "upstreams/Xray-core"]
-	path = upstreams/Xray-core
-	url = https://github.com/XTLS/Xray-core.git
-	branch = main
