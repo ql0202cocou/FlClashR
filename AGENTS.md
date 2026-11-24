@@ -4,11 +4,11 @@ FlClashR 跟随 FlClash 上游，仅分发 macOS 客户端。下游改动仅限 
 
 ## Project Structure
 
-总仓通过 Git 子模块锁定 FlClash，FlClash 再锁定内核和 UI 子模块。当前基线直接取自上游。
+总仓通过 Git 子模块锁定 FlClash，FlClash 再锁定内核和 UI 子模块。当前基线直接取自上游。自有仓库独立建立，不使用 GitHub 的 fork 功能，与上游的关系只在 `README.md` 中说明。
 
-- `app/FlClash/` 检出客户端。其中 `lib/` 存放 Dart 源码，`assets/` 存放资源，`test/` 存放 Flutter 测试。客户端读写配置时丢失 Xray 字段的问题归客户端 fork 维护。
-- `app/FlClash/core/Clash.Meta/` 检出 FlClash 锁定的 mihomo。后续协议、握手和订阅转换补丁归内核 fork 维护。
-- 内核依赖由 `go.mod` 锁定，其中 `github.com/metacubex/*` 由 MetaCubeX 独立维护，默认跟随上游。只有根因在依赖内且内核无法适配时才 fork，并在 `app/FlClash/core/go.mod` 和 `app/FlClash/core/Clash.Meta/go.mod` 中添加相同的 `replace`，因为 Go 只采用主模块的声明。
+- `app/FlClash/` 检出客户端。其中 `lib/` 存放 Dart 源码，`assets/` 存放资源，`test/` 存放 Flutter 测试。客户端读写配置时丢失 Xray 字段的问题归自有客户端仓库维护。
+- `app/FlClash/core/Clash.Meta/` 检出 FlClash 锁定的 mihomo。后续协议、握手和订阅转换补丁归自有内核仓库维护。
+- 内核依赖由 `go.mod` 锁定，其中 `github.com/metacubex/*` 由 MetaCubeX 独立维护，默认跟随上游。只有根因在依赖内且内核无法适配时才自行维护该依赖，并在 `app/FlClash/core/go.mod` 和 `app/FlClash/core/Clash.Meta/go.mod` 中添加相同的 `replace`，因为 Go 只采用主模块的声明。
 - `upstreams/` 收纳两个参照仓。对照 Go 内核时使用 `upstreams/mihomo/` 的 `Meta` 分支，官方 Xray 源码位于 `upstreams/Xray-core/`。`tests/interop/` 预留给互通测试。
 
 `Docs/` 中只有仓库与维护设计 `Docs/FlClashR-Design.md` 和技术契约 `Docs/Agent/agents-trimmed.md` 入库，其余仅保存在本地。新增文档时更新本地总目录 `Docs/README.md`。后续工作和规划统一写入 `Docs/Agent/todo.md`，问题证据和待决定事项记在 `Docs/Agent/open-issues.md`。

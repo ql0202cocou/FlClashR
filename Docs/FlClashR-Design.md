@@ -9,17 +9,19 @@ FlClashR 跟随 FlClash 上游，仅维护让 FlClash 节点与 Xray 互通所�
 | 自有仓库 | 上游基线 | 维护内容 |
 | --- | --- | --- |
 | `FlClashR` | 当前总仓 | 收纳上游源码，锁定可复现的版本组合，存放设计文档和跨仓互通测试，发布 macOS 安装包。 |
-| `FlClashR-app` | `chen08209/FlClash` 的 `main` 和正式版标签 | 指向自有内核 fork。仅在客户端会丢失、误读或错误导出 Xray 参数时，修改相应的配置处理代码。另维护分发身份所需的 Bundle ID、应用名、URL scheme 和更新源。 |
-| `FlClashR-mihomo` | FlClash 锁定的 `chen08209/Clash.Meta` 提交，来自其 `FlClash` 分支 | 主要开发仓。维护出站协议、传输、握手验证及内核侧的分享链接转换。每项兼容补丁对应一个可复现的差异。 |
+| `FlClashR-app` | `chen08209/FlClash` 的 `main` 和正式版标签 | 指向自有内核仓库。仅在客户端会丢失、误读或错误导出 Xray 参数时，修改相应的配置处理代码。另维护分发身份所需的 Bundle ID、应用名、URL scheme 和更新源。 |
+| `FlClashR-core` | FlClash 锁定的 `chen08209/Clash.Meta` 提交，来自其 `FlClash` 分支 | 主要开发仓。维护出站协议、传输、握手验证及内核侧的分享链接转换。每项兼容补丁对应一个可复现的差异。 |
 
-补丁归属分客户端、内核、内核依赖三层。内核依赖指 `go.mod` 锁定的 Go 模块，其中 `github.com/metacubex/*` 由 MetaCubeX 独立维护，默认跟随上游，没有对应的自有仓库。fork 条件和 `replace` 约定见[技术契约](Agent/agents-trimmed.md)。
+自有仓库独立建立，不使用 GitHub 的 fork 功能，推送时保留上游提交历史。与上游的关系只在[项目说明](../README.md)中说明。
+
+补丁归属分客户端、内核、内核依赖三层。内核依赖指 `go.mod` 锁定的 Go 模块，其中 `github.com/metacubex/*` 由 MetaCubeX 独立维护，默认跟随上游，没有对应的自有仓库。自行维护的条件和 `replace` 约定见[技术契约](Agent/agents-trimmed.md)。
 
 ```text
 FlClashR/
 ├── Docs/                         # 入库的设计和技术契约，以及本地的待办和遗留问题
 ├── app/
 │   └── FlClash/                  # FlClashR-app 子模块
-│       ├── core/Clash.Meta/      # App 锁定的 FlClashR-mihomo 子模块
+│       ├── core/Clash.Meta/      # App 锁定的 FlClashR-core 子模块
 │       └── plugins/prism_ui/     # App 锁定的官方 UI 子模块
 ├── upstreams/
 │   ├── mihomo/                   # MetaCubeX/mihomo，查找上游协议修复
@@ -37,7 +39,7 @@ FlClashR/
 | 上游事件 | 处理方式 |
 | --- | --- |
 | FlClash 主线更新，内核指针相同 | 同步 App 提交及其锁定的 UI 版本，沿用已验证的自有内核。检查 macOS 构建和受影响的节点导入、导出用例。 |
-| FlClash 改变 `core/Clash.Meta` 指针 | 在内核 fork 中以新指针为基线逐项核对自有补丁。上游已实现同一行为且通过原用例时移除对应补丁。让候选 App 指向移植后的内核提交，用这一组合构建并验证。 |
+| FlClash 改变 `core/Clash.Meta` 指针 | 在自有内核仓库中以新指针为基线逐项核对自有补丁。上游已实现同一行为且通过原用例时移除对应补丁。让候选 App 指向移植后的内核提交，用这一组合构建并验证。 |
 | FlClash 发布正式版 | 单独读取该标签及其子模块指针，用该组合做发布验收。总仓标签锁定通过验收的 App 和 Xray 对端，发布说明标明对应的 FlClash 版本。 |
 | MetaCubeX/mihomo 或 Xray-core 出现相关更新 | 从 mihomo 查找可同步的修复，用指定版本的官方 Xray 复测已有用例。记录新增差异，依据 FlClash 的基线决定需要移植的改动。 |
 | 影响互通的内核依赖或 Xray 依赖版本变化 | 即使内核补丁未变，也重跑受影响的互通用例，并记录新的依赖版本。 |
@@ -52,7 +54,7 @@ FlClashR/
 | --- | --- | --- |
 | 分享链接或订阅读入后，节点缺少字段 | 内核的 `common/convert/` 负责转换。App 的 `core/share_link.go` 负责分享链接导出。 | 从适用的分享链接、内联节点和 provider 入口读取，同一节点的有效参数一致。导出后重新导入，应保留原有传输与验证要求。 |
 | 节点字段齐全，与官方 Xray 的握手或传输仍不一致 | 内核的 `adapter/outbound/` 及对应的 `component/tls/`、`transport/` | 用固定版本的官方 Xray 建立连接并收发流量。涉及身份验证时，同时覆盖正确凭据、错误凭据和原有节点配置。 |
-| 差异的根因在内核依赖内 | 优先在内核适配。内核无法适配时才 fork 该依赖，并按技术契约添加 `replace`。 | 客户端构建和内核单独测试都使用 fork 后的依赖，并通过原差异对应的互通用例。 |
+| 差异的根因在内核依赖内 | 优先在内核适配。内核无法适配时才自行维护该依赖，并按技术契约添加 `replace`。 | 客户端构建和内核单独测试都使用自行维护的依赖，并通过原差异对应的互通用例。 |
 | 节点指定了当前内核无法执行的验证要求 | 在最早能识别该要求的解析或校验层报告具体参数 | 用户能看到原因，携带该要求的节点无法在丢失校验的情况下被当作可用节点。 |
 
 ### 两个已核对的例子
