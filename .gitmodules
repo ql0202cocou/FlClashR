@@ -1,0 +1,4 @@
+[submodule "app/FlClash"]
+	path = app/FlClash
+	url = https://github.com/chen08209/FlClash.git
+	branch = main
