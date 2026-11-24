@@ -39,6 +39,18 @@ Dart 使用两个空格缩进，字符串使用单引号。用 `dart format` 格
 
 验收记录包含 FlClash 基线、内核提交和 Xray 版本，以及内核锁定的 `metacubex/utls`、`tls`、`http`、`quic-go`、`mlkem`、`blake3`，和 Xray-core 锁定的 `refraction-networking/utls`、`xtls/reality`。任一依赖版本变化时，即使内核补丁未变，也重跑受影响的互通用例。
 
+## Upstream Sync and Push
+
+每日检查 `chen08209/FlClash` 的 `main` 和正式版标签，也可随时手动检查。
+
+上游会改写内核历史，因此自有内核仓库的 `main` 只前进，不强制推送。跟进新基线时：
+
+1. 从新的上游提交开本地临时分支，`cherry-pick` 自有补丁，构建并验证。
+2. 运行 `git merge -s ours <旧 main>` 接入旧历史，合并前后文件内容应当一致。
+3. 快进推送到 `main`，并给采用的上游提交打标签。
+
+用 `git log --first-parent` 查看当前基线和补丁。推送按内核、客户端、总仓的顺序进行。首次检出后，分别在总仓和 `app/FlClash/` 运行 `git config push.recurseSubmodules check`。该检查只覆盖一层，两处都要设置。
+
 ## Commits
 
-总仓由单人维护，允许直接提交到 `main`，所有改动都在 `main` 上滚动更新，不另开分支或拉取请求。更新子模块指针时，先在本地工作区验证新组合，通过后才提交。提交说明沿用 FlClash 的 Conventional Commits 格式，例如 `fix(xhttp): preserve headers on export`。涉及兼容补丁或上游同步时，在提交正文中说明要解决的兼容问题、涉及的上游版本和已运行的测试。如有相关 issue 或上游修复，附上链接。
+总仓由单人维护，允许直接提交到 `main`，所有改动都在 `main` 上滚动更新，不另开分支或拉取请求。更新子模块指针时，先在本地工作区验证新组合，通过后才提交。提交说明沿用 FlClash 的 Conventional Commits 格式，例如 `fix(xhttp): preserve headers on export`。涉及兼容补丁或上游同步时，在提交正文中说明要解决的兼容问题、涉及的上游版本和已运行的测试。如有相关 issue 或上游修复，附上链接。在客户端和内核仓库提交时遵循各自的规则，客户端仓库的提交不带 Agent 的 `Co-authored-by`。
