@@ -8,6 +8,7 @@ import (
 	"github.com/metacubex/mihomo/adapter/outbound"
 	"github.com/metacubex/mihomo/listener/inbound"
 	"github.com/metacubex/mihomo/transport/vless/encryption"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -371,9 +372,9 @@ func TestInboundVless_Reality(t *testing.T) {
 		outboundOptions.Flow = "xtls-rprx-vision"
 		testInboundVless(t, inboundOptions, outboundOptions)
 	})
-	t.Run("X25519MLKEM768", func(t *testing.T) {
+	t.Run("without-X25519MLKEM768", func(t *testing.T) {
 		outboundOptions := outboundOptions
-		outboundOptions.RealityOpts.SupportX25519MLKEM768 = true
+		outboundOptions.RealityOpts.SupportX25519MLKEM768 = lo.ToPtr(false)
 		testInboundVless(t, inboundOptions, outboundOptions)
 		t.Run("xtls-rprx-vision", func(t *testing.T) {
 			outboundOptions := outboundOptions
@@ -405,9 +406,9 @@ func TestInboundVless_Reality_Grpc(t *testing.T) {
 		GrpcOpts:          outbound.GrpcOptions{GrpcServiceName: "GunService"},
 	}
 	testInboundVless(t, inboundOptions, outboundOptions)
-	t.Run("X25519MLKEM768", func(t *testing.T) {
+	t.Run("without-X25519MLKEM768", func(t *testing.T) {
 		outboundOptions := outboundOptions
-		outboundOptions.RealityOpts.SupportX25519MLKEM768 = true
+		outboundOptions.RealityOpts.SupportX25519MLKEM768 = lo.ToPtr(false)
 		testInboundVless(t, inboundOptions, outboundOptions)
 	})
 }
