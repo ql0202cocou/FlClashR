@@ -27,6 +27,10 @@ FlClashR 由个人独立维护，与下列上游项目没有隶属关系。本�
 
 `reality-opts.support-x25519mlkem768` 省略或设为 `true` 时保留客户端指纹中的 X25519MLKEM768 密钥组。使用 Chrome 指纹时，Xray v26.11.9 可按默认值连接。若连接 v24.12.31 且其 TLS 目标会协商混合密钥组，需要在该节点显式设为 `false`。v25.9.11 已验证两种握手均可用。
 
+分享链接的 `pqv` 对应节点字段 `reality-opts.mldsa65-verify`。填入服务端的 ML-DSA-65 验证公钥后，客户端在基础 REALITY 认证之外校验本次握手的签名。公钥不匹配或服务端未签名时连接失败。省略该字段时沿用基础认证。XHTTP 独立下行使用 `extra.downloadSettings.realitySettings.mldsa65Verify`，可以单独指定公钥。签名验证需要 Go 1.27 或更新版本构建的内核。
+
+[签名互通用例](tests/interop/reality_pqv_test.go)从桌面内核的分享链接接口导入、导出并重新导入节点，通过内联配置和文件订阅连接官方 Xray v26.11.9。
+
 ## 许可证
 
 本仓库采用 [GPL-3.0](LICENSE)。各目录中的上游源码保留各自的许可证文件。

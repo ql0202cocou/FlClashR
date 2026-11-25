@@ -975,6 +975,7 @@ proxies: # socks5
     reality-opts:
       public-key: xxx
       short-id: xxx # optional
+      # mldsa65-verify: <ML-DSA-65 验证公钥，对应分享链接 pqv>
       # support-x25519mlkem768: false # 默认保留指纹中的混合密钥组，连接不兼容的旧服务端时可显式关闭
     client-fingerprint: chrome # cannot be empty
 
@@ -1002,6 +1003,7 @@ proxies: # socks5
     reality-opts:
       public-key: CrrQSjAG_YkHLwvM2M-7XkKJilgL5upBKCp0od0tLhE
       short-id: 10f897e26c4b9478
+      # mldsa65-verify: <ML-DSA-65 验证公钥，对应分享链接 pqv>
       # support-x25519mlkem768: false # 默认保留指纹中的混合密钥组，连接不兼容的旧服务端时可显式关闭
 
   - name: "vless-ws"

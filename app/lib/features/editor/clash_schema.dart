@@ -406,6 +406,7 @@ const _reality = {
   'reality-opts': YamlSchema.map({
     'public-key': _str,
     'short-id': _str,
+    'mldsa65-verify': _str,
     'support-x25519mlkem768': _bool,
   }),
 };

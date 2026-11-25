@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/metacubex/mihomo/common/convert"
@@ -100,6 +101,9 @@ func shareURL(scheme string, user *url.Userinfo, host string, query url.Values, 
 
 func encodeShareLink(f proxyFields) string {
 	if f.str("server") == "" {
+		return ""
+	}
+	if err := convert.CheckRealityVerification(f); err != nil {
 		return ""
 	}
 	switch f.str("type") {
@@ -222,10 +226,16 @@ func wsEarlyDataPath(network string, opts proxyFields) string {
 func encodeVmess(f proxyFields) string {
 	if alterID := f.str("alterId"); alterID == "" || alterID == "0" {
 		query := vShareQuery(f)
+		if query == nil {
+			return ""
+		}
 		if cipher := f.str("cipher"); cipher != "" && cipher != "auto" {
 			query.Set("encryption", cipher)
 		}
 		return shareURL("vmess", url.User(f.str("uuid")), hostPort(f), query, f.str("name"))
+	}
+	if f.sub("reality-opts").str("mldsa65-verify") != "" {
+		return ""
 	}
 	values := map[string]any{
 		"v":    "2",
@@ -276,6 +286,9 @@ func encodeVmess(f proxyFields) string {
 
 func encodeVless(f proxyFields) string {
 	query := vShareQuery(f)
+	if query == nil {
+		return ""
+	}
 	setIf(query, "flow", f.str("flow"))
 	setIf(query, "encryption", f.str("encryption"))
 	return shareURL("vless", url.User(f.str("uuid")), hostPort(f), query, f.str("name"))
@@ -284,13 +297,13 @@ func encodeVless(f proxyFields) string {
 // The Xray share link standard that handleVShareLink in mihomo reads.
 func vShareQuery(f proxyFields) url.Values {
 	query := url.Values{}
+	reality := f.sub("reality-opts")
+	if reality.str("mldsa65-verify") != "" && (!f.flag("tls") || reality.str("public-key") == "") {
+		return nil
+	}
 	if f.flag("tls") {
-		reality := f.sub("reality-opts")
 		if publicKey := reality.str("public-key"); publicKey != "" {
-			query.Set("security", "reality")
-			query.Set("pbk", publicKey)
-			setIf(query, "sid", reality.str("short-id"))
-			setIf(query, "support-x25519mlkem768", reality.str("support-x25519mlkem768"))
+			setRealityShareQuery(query, reality)
 		} else {
 			query.Set("security", "tls")
 		}
@@ -343,14 +356,146 @@ func vShareQuery(f proxyFields) url.Values {
 		setIf(query, "path", opts.str("path"))
 		setIf(query, "host", opts.str("host"))
 		setIf(query, "mode", opts.str("mode"))
+		down := opts.sub("download-settings")
+		if len(down) > 0 && (len(down.sub("reality-opts")) > 0 || reality.str("mldsa65-verify") != "") {
+			extra, ok := realityDownloadExtra(f, down)
+			if !ok {
+				return nil
+			}
+			query.Set("extra", extra)
+		}
 	default:
 		query.Set("type", network)
 	}
 	return query
 }
 
+func setRealityShareQuery(query url.Values, reality proxyFields) {
+	query.Set("security", "reality")
+	query.Set("pbk", reality.str("public-key"))
+	setIf(query, "sid", reality.str("short-id"))
+	setIf(query, "pqv", reality.str("mldsa65-verify"))
+	setIf(query, "support-x25519mlkem768", reality.str("support-x25519mlkem768"))
+}
+
+// An independent XHTTP connection has its own endpoint, TLS name and verifier.
+func realityDownloadExtra(parent, down proxyFields) (string, bool) {
+	stream := map[string]any{"network": "xhttp"}
+	for k := range down {
+		switch k {
+		case "server", "port", "tls", "servername", "client-fingerprint", "alpn", "skip-cert-verify", "reality-opts", "path", "host", "headers", "reuse-settings":
+		default:
+			return "", false
+		}
+	}
+	addr := down.str("server")
+	if addr == "" {
+		addr = parent.str("server")
+	}
+	stream["address"] = addr
+	portText := down.str("port")
+	if portText == "" {
+		portText = parent.str("port")
+	}
+	port, err := strconv.ParseUint(portText, 10, 16)
+	if err != nil || port == 0 {
+		return "", false
+	}
+	stream["port"] = port
+	reality := down.sub("reality-opts")
+	if reality == nil {
+		reality = parent.sub("reality-opts")
+	}
+	tlsEnabled := parent.flag("tls")
+	if down["tls"] != nil {
+		tlsEnabled = down.flag("tls")
+	}
+	settings := map[string]any{}
+	for from, to := range map[string]string{"servername": "serverName", "client-fingerprint": "fingerprint"} {
+		value := down.str(from)
+		if value == "" {
+			value = parent.str(from)
+		}
+		if value != "" {
+			settings[to] = value
+		}
+	}
+	tlsSettings := map[string]any{}
+	if value := down["alpn"]; value != nil {
+		tlsSettings["alpn"] = down.list("alpn")
+	}
+	if value := down["skip-cert-verify"]; value != nil {
+		tlsSettings["allowInsecure"] = down.flag("skip-cert-verify")
+	}
+	switch {
+	case reality.str("public-key") != "":
+		if !tlsEnabled {
+			return "", false
+		}
+		stream["security"] = "reality"
+		settings["publicKey"] = reality.str("public-key")
+		if sid := reality.str("short-id"); sid != "" {
+			settings["shortId"] = sid
+		}
+		if verify := reality.str("mldsa65-verify"); verify != "" {
+			settings["mldsa65Verify"] = verify
+		}
+		if reality["support-x25519mlkem768"] != nil {
+			settings["support-x25519mlkem768"] = reality.flag("support-x25519mlkem768")
+		}
+		stream["realitySettings"] = settings
+	case reality.str("mldsa65-verify") != "":
+		return "", false
+	case tlsEnabled:
+		stream["security"] = "tls"
+		for k, v := range settings {
+			tlsSettings[k] = v
+		}
+	default:
+		stream["security"] = "none"
+	}
+	if len(tlsSettings) > 0 {
+		stream["tlsSettings"] = tlsSettings
+	}
+	xhttp := map[string]any{}
+	for _, key := range []string{"path", "host", "headers"} {
+		value := down[key]
+		if value == nil {
+			value = parent.sub("xhttp-opts")[key]
+		}
+		if value != nil {
+			xhttp[key] = value
+		}
+	}
+	if reuse := down.sub("reuse-settings"); len(reuse) > 0 {
+		xmux := map[string]any{}
+		for from, to := range map[string]string{
+			"max-connections":     "maxConnections",
+			"max-concurrency":     "maxConcurrency",
+			"c-max-reuse-times":   "cMaxReuseTimes",
+			"h-max-request-times": "hMaxRequestTimes",
+			"h-max-reusable-secs": "hMaxReusableSecs",
+			"h-keep-alive-period": "hKeepAlivePeriod",
+		} {
+			if value := reuse[from]; value != nil {
+				xmux[to] = value
+			}
+		}
+		xhttp["extra"] = map[string]any{"xmux": xmux}
+	}
+	stream["xhttpSettings"] = xhttp
+	extra, err := json.Marshal(map[string]any{"downloadSettings": stream})
+	return string(extra), err == nil
+}
+
 func encodeTrojan(f proxyFields) string {
 	query := url.Values{}
+	reality := f.sub("reality-opts")
+	if reality.str("public-key") != "" {
+		setRealityShareQuery(query, reality)
+	} else if reality.str("mldsa65-verify") != "" {
+		return ""
+	}
 	if f.flag("skip-cert-verify") {
 		query.Set("allowInsecure", "1")
 	}

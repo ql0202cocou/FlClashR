@@ -322,7 +322,7 @@ func NewTrojan(option TrojanOption) (*Trojan, error) {
 	if err != nil {
 		return nil, err
 	}
-	t.realityConfig, err = option.RealityOpts.Parse()
+	t.realityConfig, err = option.RealityOpts.parseForNetwork(option.Network, option.ALPN)
 	if err != nil {
 		return nil, err
 	}

@@ -532,7 +532,7 @@ func NewVmess(option VmessOption) (*Vmess, error) {
 	if err != nil {
 		return nil, err
 	}
-	v.realityConfig, err = v.option.RealityOpts.Parse()
+	v.realityConfig, err = v.option.RealityOpts.parseForNetwork(option.Network, option.ALPN)
 	if err != nil {
 		return nil, err
 	}

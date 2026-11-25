@@ -164,7 +164,10 @@ func ConvertsV2Ray(buf []byte) ([]map[string]any, error) {
 				continue
 			}
 
-			query := urlTrojan.Query()
+			query, err := url.ParseQuery(urlTrojan.RawQuery)
+			if err != nil {
+				continue
+			}
 
 			name := uniqueName(names, urlTrojan.Fragment)
 			trojan := make(map[string]any, 20)
@@ -175,6 +178,11 @@ func ConvertsV2Ray(buf []byte) ([]map[string]any, error) {
 			trojan["port"] = urlTrojan.Port()
 			trojan["password"] = urlTrojan.User.Username()
 			trojan["udp"] = true
+			if strings.EqualFold(query.Get("security"), "reality") || query.Has("pqv") {
+				if err := setRealityShareOptions(query, trojan); err != nil {
+					continue
+				}
+			}
 			trojan["skip-cert-verify"], _ = strconv.ParseBool(query.Get("allowInsecure"))
 
 			if sni := query.Get("sni"); sni != "" {

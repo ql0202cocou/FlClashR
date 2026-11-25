@@ -1,7 +1,10 @@
 package core
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -330,5 +333,65 @@ func TestDecodeShareLinksAnswersEveryLine(t *testing.T) {
 	}
 	if results[0][0]["name"] != "one" || results[2][0]["name"] != "two" {
 		t.Errorf("names = %v, %v", results[0][0]["name"], results[2][0]["name"])
+	}
+}
+
+func TestShareLinkRealityVerification(t *testing.T) {
+	const uuid = "11a962d3-82f0-47c5-bf65-18b0f40d4973"
+	const publicKey = "ppQ9FwLrLIa0AOrp1WvcyiaQ37vg2WSy_CD4bIdiTUw"
+	verify := base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{0xfb}, 1952))
+	for _, scheme := range []string{"vless", "vmess", "trojan"} {
+		for _, value := range []string{"", verify} {
+			link := scheme + "://" + uuid + "@example.com:443?security=reality&pbk=" + publicKey + "&sid=01"
+			if value != "" {
+				link += "&pqv=" + value
+			}
+			decode := func(s string) map[string]any {
+				t.Helper()
+				nodes := handleDecodeShareLinks(LinesParams{Lines: []string{s}})[0]
+				if len(nodes) != 1 {
+					t.Fatalf("%s: expected one imported node", scheme)
+				}
+				got := lookupField(nodes[0], "reality-opts.mldsa65-verify")
+				if value == "" && got != nil || value != "" && got != value {
+					t.Fatalf("%s: imported verification key changed", scheme)
+				}
+				return nodes[0]
+			}
+			node := decode(link)
+			exported := handleEncodeShareLinks(ProxiesParams{Proxies: []map[string]any{node}})[0]
+			u, err := url.Parse(exported)
+			if err != nil || u.Query().Get("pqv") != value || u.Query().Has("pqv") != (value != "") {
+				t.Fatalf("%s: exported verification key changed", scheme)
+			}
+			decode(exported)
+		}
+	}
+}
+
+func TestShareLinkRejectsUnrepresentableVerification(t *testing.T) {
+	const prefix = "vless://11a962d3-82f0-47c5-bf65-18b0f40d4973@example.com:443?"
+	for _, query := range []string{
+		"security=tls&pqv=value",
+		"security=reality&pqv=value",
+		"security=reality&pbk=public&pqv=%ZZ",
+		"security=reality&pbk=public&pqv=&pqv=value",
+		"type=xhttp&extra=" + url.QueryEscape(`{"downloadSettings":{"security":"reality","realitySettings":{"mldsa65Verify":true}}}`),
+		"type=xhttp&extra=" + url.QueryEscape(`{"downloadSettings":{"security":"reality","realitySettings":{"mldsa65Verify":"key"}}}`),
+	} {
+		if nodes := handleDecodeShareLinks(LinesParams{Lines: []string{prefix + query}})[0]; len(nodes) != 0 {
+			t.Fatalf("accepted invalid link query %q", query)
+		}
+	}
+	for _, node := range []map[string]any{
+		{"type": "vless", "server": "example.com", "tls": false, "reality-opts": map[string]any{"public-key": "pub", "mldsa65-verify": "key"}},
+		{"type": "trojan", "server": "example.com", "reality-opts": map[string]any{"mldsa65-verify": "key"}},
+		{"type": "http", "server": "example.com", "reality-opts": map[string]any{"mldsa65-verify": "key"}},
+		{"type": "vmess", "server": "example.com", "network": "xhttp", "xhttp-opts": map[string]any{"download-settings": map[string]any{"reality-opts": map[string]any{"mldsa65-verify": "key"}}}},
+		{"type": "vmess", "server": "example.com", "alterId": 8, "tls": true, "reality-opts": map[string]any{"public-key": "pub", "mldsa65-verify": "key"}},
+	} {
+		if link := encodeShareLink(node); link != "" {
+			t.Fatalf("%s: encoded a link that cannot carry the requested verification", node["type"])
+		}
 	}
 }

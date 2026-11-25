@@ -529,7 +529,7 @@ func NewVless(option VlessOption) (*Vless, error) {
 	if err != nil {
 		return nil, err
 	}
-	v.realityConfig, err = v.option.RealityOpts.Parse()
+	v.realityConfig, err = v.option.RealityOpts.parseForNetwork(option.Network, option.ALPN)
 	if err != nil {
 		return nil, err
 	}
@@ -761,12 +761,10 @@ func NewVless(option VlessOption) (*Vless, error) {
 					return nil, err
 				}
 			}
-			downloadRealityCfg := v.realityConfig
-			if ds.RealityOpts != nil {
-				downloadRealityCfg, err = ds.RealityOpts.Parse()
-				if err != nil {
-					return nil, err
-				}
+			downloadReality := lo.FromPtrOr(ds.RealityOpts, v.option.RealityOpts)
+			downloadRealityCfg, err := downloadReality.parseForNetwork("xhttp", downloadALPN)
+			if err != nil {
+				return nil, fmt.Errorf("xhttp download-settings: %w", err)
 			}
 			downloadSecurityModes := make([]string, 0, 4)
 			if downloadShadowTLSConfig != nil {
